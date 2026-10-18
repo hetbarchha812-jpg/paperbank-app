@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.URLUtil;
@@ -26,9 +28,19 @@ public class MainActivity extends AppCompatActivity {
     private static final String SITE_HOST = "paperbank.freehosting.dev";
     private static final int FILE_CHOOSER = 1001;
 
+    // Splash screen ketla millisecond (2500 = 2.5 second) batavvi
+    private static final int SPLASH_MIN_MS = 2500;
+    // Site dhimi hoy to pan splash maximum ketli var pachi hatavvi
+    private static final int SPLASH_MAX_MS = 10000;
+
     private WebView webView;
     private SwipeRefreshLayout swipe;
+    private View splash;
     private ValueCallback<Uri[]> filePathCallback;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean pageLoaded = false;
+    private boolean minTimePassed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +49,18 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webview);
         swipe = findViewById(R.id.swipe);
+        splash = findViewById(R.id.splash);
+
+        handler.postDelayed(() -> {
+            minTimePassed = true;
+            hideSplashIfReady();
+        }, SPLASH_MIN_MS);
+
+        handler.postDelayed(() -> {
+            pageLoaded = true;
+            minTimePassed = true;
+            hideSplashIfReady();
+        }, SPLASH_MAX_MS);
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -67,15 +91,19 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 swipe.setRefreshing(false);
+                pageLoaded = true;
+                hideSplashIfReady();
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
                 if (req.isForMainFrame()) {
                     swipe.setRefreshing(false);
+                    pageLoaded = true;
                     view.loadData("<html><body style='font-family:sans-serif;text-align:center;padding-top:30%'>"
                             + "<h3>Internet connection nathi</h3><p>Swipe down karine fari try karo.</p></body></html>",
                             "text/html", "UTF-8");
+                    hideSplashIfReady();
                 }
             }
         });
@@ -117,6 +145,14 @@ public class MainActivity extends AppCompatActivity {
         else webView.loadUrl(SITE_URL);
     }
 
+    private void hideSplashIfReady() {
+        if (pageLoaded && minTimePassed && splash.getVisibility() == View.VISIBLE) {
+            splash.animate().alpha(0f).setDuration(400)
+                    .withEndAction(() -> splash.setVisibility(View.GONE))
+                    .start();
+        }
+    }
+
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         if (req == FILE_CHOOSER && filePathCallback != null) {
@@ -131,6 +167,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
         webView.saveState(out);
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 
     @Override
