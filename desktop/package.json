@@ -1,0 +1,26 @@
+{
+  "name": "paperbank",
+  "version": "1.0.0",
+  "description": "PaperBank",
+  "author": "PaperBank",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "31.3.1",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.paperbank.desktop",
+    "productName": "PaperBank",
+    "win": { "target": "nsis" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
